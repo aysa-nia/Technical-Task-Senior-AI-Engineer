@@ -7,7 +7,9 @@ from sentence_transformers import SentenceTransformer
 CORPUS_PATH   = "corpus.jsonl"
 CHUNK_SIZE    = 400
 EMBED_MODEL   = "BAAI/bge-large-en-v1.5"
-RRF_K         = 60          
+RRF_K         = 60
+DENSE_WEIGHT  = 0.7
+BM25_WEIGHT   = 0.3
 
 _QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
 _TOKEN_RE     = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")   
@@ -81,12 +83,12 @@ def hybrid_search(query: str, chunks, vectors: np.ndarray, bm25_index: BM25Okapi
     for rank, (c, _) in enumerate(dense_results, start=1):
         cid = c["chunk_id"]
         chunk_by_id[cid]  = c
-        fused_scores[cid] = fused_scores.get(cid, 0.0) + 1.0 / (RRF_K + rank)
+        fused_scores[cid] = fused_scores.get(cid, 0.0) + DENSE_WEIGHT / (RRF_K + rank)
 
     for rank, (c, _) in enumerate(bm25_results, start=1):
         cid = c["chunk_id"]
         chunk_by_id[cid]  = c
-        fused_scores[cid] = fused_scores.get(cid, 0.0) + 1.0 / (RRF_K + rank)
+        fused_scores[cid] = fused_scores.get(cid, 0.0) + BM25_WEIGHT / (RRF_K + rank)
 
     ranked = sorted(fused_scores.items(), key=lambda kv: -kv[1])[:fused_top_k]
     return [(chunk_by_id[cid], score) for cid, score in ranked]
