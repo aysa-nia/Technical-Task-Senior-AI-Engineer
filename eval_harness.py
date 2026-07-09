@@ -6,6 +6,7 @@ import re
 from step1_chunking import load_docs, build_chunks, build_index
 from step2_embedding import build_step2_pipeline
 from step3_hybrid import build_step3_pipeline
+from step4_rerank import build_step4_pipeline
 
 EVAL_SET = [
     ("What is the rated output of the C-100 compressor?",           {"DOC-03"},             True),
@@ -202,7 +203,7 @@ def print_delta(base_metrics, step_metrics, k):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--step", default="1",
-                        help="Which step to evaluate vs baseline: '1', '2', '3' or 'baseline'")
+                        help="Which step to evaluate vs baseline: '1', '2', '3', '4' or 'baseline'")
     parser.add_argument("--k", type=int, default=4,
                         help="Recall@k and top-k for retrieval (default: 4)")
     args = parser.parse_args()
@@ -233,10 +234,14 @@ if __name__ == "__main__":
     elif args.step == "3":
         print("\nBuilding Step 3 pipeline (hybrid: BGE-large dense + BM25 via RRF)...")
         step_fn, step_meta = build_step3_pipeline(corpus_path=CORPUS_PATH)
-        # NOTE: If step3 uses Reciprocal Rank Fusion (RRF), its "score" will represent 
-        # the fused RRF metric rather than traditional cosine similarity.
+        step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
+        step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
+        print_delta(base_metrics, step_metrics, K)
+    elif args.step == "4":
+        print("\nBuilding Step 4 pipeline (Cross-encoder Re-ranking)...")
+        step_fn, step_meta = build_step4_pipeline(corpus_path=CORPUS_PATH)
         step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
         step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
         print_delta(base_metrics, step_metrics, K)
     else:
-        print(f"Unknown step '{args.step}'. Available: baseline, 1, 2, 3")
+        print(f"Unknown step '{args.step}'. Available: baseline, 1, 2, 3, 4")
