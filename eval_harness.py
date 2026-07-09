@@ -7,6 +7,7 @@ from step1_chunking import load_docs, build_chunks, build_index
 from step2_embedding import build_step2_pipeline
 from step3_hybrid import build_step3_pipeline
 from step4_rerank import build_step4_pipeline
+from step5_abstain import build_step5_pipeline
 
 EVAL_SET = [
     ("What is the rated output of the C-100 compressor?",           {"DOC-03"},             True),
@@ -240,6 +241,12 @@ if __name__ == "__main__":
     elif args.step == "4":
         print("\nBuilding Step 4 pipeline (Cross-encoder Re-ranking)...")
         step_fn, step_meta = build_step4_pipeline(corpus_path=CORPUS_PATH)
+        step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
+        step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
+        print_delta(base_metrics, step_metrics, K)
+    elif args.step == "5":
+        print("\nBuilding Step 5 pipeline (Abstention Threshold Gating)...")
+        step_fn, step_meta = build_step5_pipeline(corpus_path=CORPUS_PATH , eval_set=EVAL_SET)
         step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
         step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
         print_delta(base_metrics, step_metrics, K)
