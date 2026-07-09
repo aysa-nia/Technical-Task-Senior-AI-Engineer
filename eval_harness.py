@@ -4,6 +4,7 @@ from sentence_transformers import SentenceTransformer
 import json
 import re
 from step1_chunking import load_docs, build_chunks, build_index
+from step2_embedding import build_step2_pipeline
 
 
 EVAL_SET = [
@@ -82,7 +83,6 @@ def build_baseline_pipeline():
 
 def build_step1_pipeline():
     EMBED_MODEL = "all-MiniLM-L6-v2"
-
     print("  [step1]    Loading model: all-MiniLM-L6-v2  (unchanged)")
     model = SentenceTransformer(EMBED_MODEL)
     docs = load_docs(CORPUS_PATH)
@@ -174,7 +174,7 @@ def print_delta(base_metrics, step_metrics, k):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--step", default="1",
-                        help="Which step to evaluate vs baseline: '1' or 'baseline'")
+                        help="Which step to evaluate vs baseline: '1', '2', or 'baseline'")
     parser.add_argument("--k", type=int, default=4,
                         help="Recall@k and top-k for retrieval (default: 4)")
     args = parser.parse_args()
@@ -196,5 +196,11 @@ if __name__ == "__main__":
         step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
         step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
         print_delta(base_metrics, step_metrics, K)
+    elif args.step == "2":
+        print("\nBuilding Step 2 pipeline (BGE-large-en-v1.5 embedding)...")
+        step_fn, step_meta = build_step2_pipeline()
+        step_rows, step_r, step_mrr, step_abs = evaluate(step_fn, k=K)
+        step_metrics = print_report(step_rows, step_r, step_mrr, step_abs, step_meta, K)
+        print_delta(base_metrics, step_metrics, K)
     else:
-        print(f"Unknown step '{args.step}'. Available: baseline, 1")
+        print(f"Unknown step '{args.step}'. Available: baseline, 1, 2")
